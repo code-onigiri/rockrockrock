@@ -1,5 +1,6 @@
-import { Application, Assets, Sprite } from "pixi.js";
+import { Application } from "pixi.js";
 import { createScrollableWorld } from "./scrollableWorld.ts";
+import { DraggableNode } from "./node.ts";
 
 (async () => {
   // Create a new application
@@ -17,31 +18,22 @@ import { createScrollableWorld } from "./scrollableWorld.ts";
   // Append the application canvas to the document body
   document.getElementById("pixi-container")!.appendChild(app.canvas);
 
-  const { world, addItem, addItems } = createScrollableWorld(app);
+  const { world, addItem } = createScrollableWorld(app);
 
-  // Load the bunny texture
-  const texture = await Assets.load("/assets/bunny.png");
-
-  // Create a bunny Sprite
-  const bunny = new Sprite(texture);
-
-  // Center the sprite's anchor point
-  bunny.anchor.set(0.5);
-
-  // Move the sprite to the center of the screen
-  bunny.position.set(app.screen.width / 2, app.screen.height / 2);
-
-  // addItemを使用してworldに追加（eventModeは自動設定される）
-  addItem(bunny);
-
-  // 複数のアイテムを一括で追加する場合は addItems を使用
-  // 例: addItems(bunny1, bunny2, bunny3);
-
-  // Listen for animate update
-  app.ticker.add((time) => {
-    // Just for fun, let's rotate mr rabbit a little.
-    // * Delta is 1 if running at 100% performance *
-    // * Creates frame-independent transformation *
-    bunny.rotation += 0.1 * time.deltaTime;
+  // ノードを作成
+  const node1 = new DraggableNode({
+    x: 100,
+    y: 100,
+    title: "Node 1",
   });
+
+  const node2 = new DraggableNode({
+    x: 250,
+    y: 150,
+    title: "Node 2",
+  });
+
+  // worldに追加
+  addItem(node1);
+  addItem(node2);
 })();
