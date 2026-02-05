@@ -6,60 +6,59 @@
 - **短く、事実ベースで簡潔に回答**すること。不要な長話や推測は避ける。
 - **名前は `GitHub Copilot`、モデルは `Raptor mini (Preview)` と答える**（必要に応じて）。
 
-## Project Overview
+## プロジェクト概要
 
-This is an idle/incremental game built with PixiJS v8.8.1 and TypeScript. The game concept revolves around processing rocks into various items (Factorio-style incremental mechanics). The project serves dual purposes: creating the game and practicing PixiJS development.
+本プロジェクトは PixiJS v8.8.1 と TypeScript を用いた idle/incremental（放置系）ゲームです。コンセプトは岩（rock）を加工して様々なアイテムを作り出すインクリメンタルなゲームプレイ（Factorio 的な要素を含む）です。学習目的と実装の両方を兼ねています。
 
-## Build, Test, and Lint Commands
+## ビルド・実行・Lint（例）
 
 ```bash
-# Development server with hot reload
+# 開発サーバ（ホットリロード）
 pnpm dev
-# Or: npm run dev (which is aliased to dev)
+# または: npm run dev（エイリアス）
 npm start
 
-# Build for production (runs lint + TypeScript check + Vite build)
+# 本番ビルド（Lint + TypeScript チェック + Vite ビルド）
 pnpm build
 
-# Lint only
+# Lint のみ
 pnpm lint
 ```
 
-## Key Conventions
+## 主要なコーディング規約
 
-### PixiJS Patterns
+### PixiJS の慣習
 
-1. **Adding items to the world**: Always use `addItem()` or `addItems()` helpers instead of `world.addChild()` directly. These helpers automatically set `eventMode = "static"` which is required for proper event handling.
+1. **ワールドへの要素追加**: 直接 `world.addChild()` を使わず、必ず `addItem()` または `addItems()` ヘルパーを使ってください。これらは自動で `eventMode = "static"` を設定し、適切なイベント検出を保証します。
 
    ```typescript
-   // ✅ Correct
+   // ✅ 正しい例
    addItem(sprite);
    addItems(sprite1, sprite2, sprite3);
    
-   // ❌ Avoid
+   // ❌ 避ける例
    world.addChild(sprite);
    ```
 
-2. **Global PixiJS app reference**: The application instance is exposed globally as `globalThis.__PIXI_APP__` for debugging purposes.
+2. **グローバル Pixi アプリ参照**: デバッグ目的でアプリケーションインスタンスを `globalThis.__PIXI_APP__` に設定しています。
 
-3. **Event handling**: Interactive elements need `eventMode = "static"` to be detectable as event targets (prevents drag-through issues).
+3. **イベント処理**: インタラクティブな要素は `eventMode = "static"` を設定して、イベントターゲットとして検出されるようにしてください（ドラッグ透過の問題を回避）。
 
-4. **Grid rendering**: Grid uses `pixelLine: true` for crisp 1px lines at any zoom level.
+4. **グリッド描画**: `pixelLine: true` を使い、任意のズームレベルでも 1px のラインが鮮明に表示されるようにします。
 
-### Code Style
+### コードスタイル
 
-- TypeScript with strict mode enabled (`strict: true` in tsconfig)
-- Unused locals/parameters are errors (`noUnusedLocals`, `noUnusedParameters`)
-- ESLint with TypeScript and Prettier integration
-- Module system: ES Modules (`"type": "module"` in package.json)
+- TypeScript は `strict: true` を前提とする。
+- 未使用のローカル変数/引数はエラーとする（`noUnusedLocals`, `noUnusedParameters`）。
+- ESLint と Prettier を組み合わせてコードスタイルを統一する。
+- モジュールシステムは ES Modules（`"type": "module"`）を利用する。
 
+### 技術メモ（AI_MEMOs.md より抜粋）
 
-### Technical Notes (from AI_MEMOs.md)
-
-- Grid system: Update `grid.width/height` on renderer resize for responsive grids
-- Drag prevention: Check `event.target` in stage's `pointerdown` handler
-- Interactive items: Set `eventMode = "static"` on all clickable elements
-- Use helper functions to enforce conventions automatically
+- レンダラーのリサイズ時に `grid.width/height` を更新してレスポンシブなグリッドを維持する。
+- ステージの `pointerdown` ハンドラでは `event.target` を確認してドラッグの開始判定を行う。
+- インタラクティブ要素には常に `eventMode = "static"` を設定する。
+- 慣習的な処理はヘルパー関数で自動化しておくと安全です。
 
 ## File Organization
 
