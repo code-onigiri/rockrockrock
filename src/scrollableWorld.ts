@@ -6,16 +6,25 @@ import {
   type ContainerChild,
 } from "pixi.js";
 
-export const createScrollableWorld = (app: Application) => {
-  const gridSize = 50;
+export interface ScrollableWorldOptions {
+  gridSizeX?: number;
+  gridSizeY?: number;
+}
+
+export const createScrollableWorld = (
+  app: Application,
+  options: ScrollableWorldOptions = {},
+) => {
+  const gridSizeX = options.gridSizeX ?? 50;
+  const gridSizeY = options.gridSizeY ?? 50;
   const gridColor = 0xffffff;
   const gridAlpha = 0.2;
 
   const gridPattern = new Graphics()
     .moveTo(0, 0)
-    .lineTo(gridSize, 0)
+    .lineTo(gridSizeX, 0)
     .moveTo(0, 0)
-    .lineTo(0, gridSize)
+    .lineTo(0, gridSizeY)
     .stroke({
       width: 1,
       color: gridColor,
@@ -28,6 +37,10 @@ export const createScrollableWorld = (app: Application) => {
     width: app.screen.width,
     height: app.screen.height,
   });
+  grid.tileScale.set(
+    gridSizeX / gridTexture.width,
+    gridSizeY / gridTexture.height,
+  );
 
   const updateGridSize = () => {
     grid.width = app.screen.width;
@@ -80,6 +93,45 @@ export const createScrollableWorld = (app: Application) => {
     grid.tilePosition.y += dy;
   });
 
+  // ---- ズーム（マウスホイール） ----
+  const MIN_SCALE = 0.2;
+  const MAX_SCALE = 3.0;
+  const ZOOM_SPEED = 0.1;
+
+  app.canvas.addEventListener("wheel", (e: WheelEvent) => {
+    e.preventDefault();
+
+    const direction = e.deltaY < 0 ? 1 : -1;
+    const oldScale = world.scale.x;
+    const newScale = Math.min(
+      MAX_SCALE,
+      Math.max(MIN_SCALE, oldScale + direction * ZOOM_SPEED * oldScale),
+    );
+
+    // マウス位置を中心にズーム
+    const mouseX = e.offsetX;
+    const mouseY = e.offsetY;
+
+    // ワールド内のマウス位置（ズーム前）
+    const worldMouseX = (mouseX - world.position.x) / oldScale;
+    const worldMouseY = (mouseY - world.position.y) / oldScale;
+
+    // スケール適用
+    world.scale.set(newScale);
+
+    // ズーム後、マウス位置が同じワールド座標を指すよう補正
+    world.position.x = mouseX - worldMouseX * newScale;
+    world.position.y = mouseY - worldMouseY * newScale;
+
+    // グリッドも同期
+    grid.tileScale.set(
+      (gridSizeX / gridTexture.width) * newScale,
+      (gridSizeY / gridTexture.height) * newScale,
+    );
+    grid.tilePosition.x = world.position.x;
+    grid.tilePosition.y = world.position.y;
+  });
+
   // ヘルパー関数: アイテムをworldに追加し、eventModeを自動設定
   const addItem = <T extends ContainerChild>(item: T): T => {
     if ("eventMode" in item) {
@@ -95,5 +147,5 @@ export const createScrollableWorld = (app: Application) => {
     return items;
   };
 
-  return { world, addItem, addItems };
+  return { world, addItem, addItems, gridSizeX, gridSizeY };
 };
