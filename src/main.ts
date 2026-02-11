@@ -5,7 +5,7 @@ import { DraggableNode } from "./node.ts";
 (async () => {
   // Create a new application
   const app = new Application();
-
+  // NOTE :気にしないほうが幸せなエラー
   globalThis.__PIXI_APP__ = app;
 
   // Initialize the application

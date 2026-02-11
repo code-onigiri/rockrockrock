@@ -28,7 +28,15 @@ export class DraggableNode extends Container {
     this.titleBar = new Container();
     this.titleBar.eventMode = "static";
     this.titleBar.cursor = "grab";
-    this.titleBar.hitArea = { x: 0, y: 0, width, height: titleBarHeight, contains: (x: number, y: number) => x >= 0 && x <= width && y >= 0 && y <= titleBarHeight };
+    // NOTE :気にしないほうが幸せなエラー
+    this.titleBar.hitArea = {
+      x: 0,
+      y: 0,
+      width,
+      height: titleBarHeight,
+      contains: (x: number, y: number) =>
+        x >= 0 && x <= width && y >= 0 && y <= titleBarHeight,
+    };
     this.addChild(this.titleBar);
 
     // タイトルバー背景

@@ -2,6 +2,7 @@ import {
   Application,
   Container,
   Graphics,
+  Rectangle,
   TilingSprite,
   type ContainerChild,
 } from "pixi.js";
@@ -11,22 +12,30 @@ export const createScrollableWorld = (app: Application) => {
   const gridColor = 0xffffff;
   const gridAlpha = 0.2;
 
+  const halfPixel = 0.5;
   const gridPattern = new Graphics()
-    .moveTo(0, 0)
-    .lineTo(gridSize, 0)
-    .moveTo(0, 0)
-    .lineTo(0, gridSize)
+    .moveTo(halfPixel, halfPixel)
+    .lineTo(gridSize - halfPixel, halfPixel)
+    .moveTo(halfPixel, halfPixel)
+    .lineTo(halfPixel, gridSize - halfPixel)
     .stroke({
       width: 1,
       color: gridColor,
       alpha: gridAlpha,
       pixelLine: true,
     });
-  const gridTexture = app.renderer.generateTexture({ target: gridPattern });
+  // NOTE :気にしないほうが幸せなエラー
+  const gridTexture = app.renderer.generateTexture(gridPattern, {
+    // 明示的に切り抜き領域を指定して余分な余白を防ぐ
+    region: new Rectangle(0, 0, gridSize, gridSize),
+    // レンダラーの resolution に合わせて高解像度（Retina）対応する
+    resolution: app.renderer.resolution,
+  });
   const grid = new TilingSprite({
     texture: gridTexture,
     width: app.screen.width,
     height: app.screen.height,
+    applyAnchorToTexture: true,
   });
 
   const updateGridSize = () => {
@@ -36,6 +45,7 @@ export const createScrollableWorld = (app: Application) => {
 
   updateGridSize();
   app.renderer.on("resize", updateGridSize);
+
   app.stage.addChild(grid);
 
   const world = new Container();
