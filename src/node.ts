@@ -1,10 +1,20 @@
-import { Container, Graphics, Text, FederatedPointerEvent } from "pixi.js";
+import {
+  Container,
+  Graphics,
+  Text,
+  FederatedPointerEvent,
+  Rectangle,
+} from "pixi.js";
 
 export interface NodeOptions {
   x?: number;
   y?: number;
   title?: string;
   gridSize?: number;
+  /** 横のグリッド数（デフォルト: 2） */
+  cols?: number;
+  /** 縦のグリッド数（デフォルト: 3） */
+  rows?: number;
 }
 
 export class DraggableNode extends Container {
@@ -16,33 +26,49 @@ export class DraggableNode extends Container {
   private isDragging = false;
   private dragOffset = { x: 0, y: 0 };
 
+  // 要素外に出てもドラッグ継続できるようにする
+  private dragRoot: Container | null = null;
+  private onDragMoveBound = this.onDragMove.bind(this);
+  private onDragEndBound = this.onDragEnd.bind(this);
+
+  private getRootContainer(): Container {
+    // 最上位コンテナ（通常は stage）までたどる
+    let parent = this.parent as Container | null;
+    while (parent?.parent) parent = parent.parent as Container;
+    return parent ?? this;
+  }
+
   constructor(options: NodeOptions = {}) {
     super();
 
     this.gridSize = options.gridSize ?? 50;
-    const width = this.gridSize * 2; // 2グリッド
-    const height = this.gridSize * 3; // 3グリッド
+    const cols = options.cols ?? 2;
+    const rows = options.rows ?? 3;
+    const width = this.gridSize * cols; // 横: cols グリッド
+    const height = this.gridSize * rows; // 縦: rows グリッド
     const titleBarHeight = 30;
 
     // タイトルバーコンテナ
     this.titleBar = new Container();
     this.titleBar.eventMode = "static";
     this.titleBar.cursor = "grab";
-    // NOTE :気にしないほうが幸せなエラー
-    this.titleBar.hitArea = {
-      x: 0,
-      y: 0,
-      width,
-      height: titleBarHeight,
-      contains: (x: number, y: number) =>
-        x >= 0 && x <= width && y >= 0 && y <= titleBarHeight,
-    };
+    this.titleBar.hitArea = new Rectangle(0, 0, width, titleBarHeight);
     this.addChild(this.titleBar);
 
-    // タイトルバー背景
+    // タイトルバー背景（上角だけ丸める: roundShape 利用）
     this.titleBarBg = new Graphics();
-    this.titleBarBg.rect(0, 0, width, titleBarHeight);
-    this.titleBarBg.fill({ color: 0x4a90e2 });
+    const titleCornerRadius = 8; // タイトルバーの角丸半径(px)
+    this.titleBarBg
+      .roundShape(
+        [
+          { x: 0, y: 0, radius: titleCornerRadius }, // 左上
+          { x: width, y: 0, radius: titleCornerRadius }, // 右上
+          { x: width, y: titleBarHeight, radius: 0 }, // 右下
+          { x: 0, y: titleBarHeight, radius: 0 }, // 左下
+        ],
+        0,
+      )
+      .fill({ color: 0x4a90e2 });
     this.titleBar.addChild(this.titleBarBg);
 
     // タイトルテキスト
@@ -58,11 +84,22 @@ export class DraggableNode extends Container {
     this.titleText.position.set(8, titleBarHeight / 2);
     this.titleBar.addChild(this.titleText);
 
-    // 本体
+    // 本体（下角だけ丸める: roundShape 利用）
     this.background = new Graphics();
-    this.background.rect(0, titleBarHeight, width, height - titleBarHeight);
-    this.background.fill({ color: 0x2d2d2d });
-    this.background.stroke({ width: 2, color: 0x4a4a4a });
+    const bgCornerRadius = 8; // 本体の下角半径(px)
+    this.background
+      .roundShape(
+        [
+          { x: 0, y: titleBarHeight, radius: 0 }, // 左上
+          { x: width, y: titleBarHeight, radius: 0 }, // 右上
+          { x: width, y: height, radius: bgCornerRadius }, // 右下
+          { x: 0, y: height, radius: bgCornerRadius }, // 左下
+        ],
+        0,
+      )
+      .fill({ color: 0x2d2d2d })
+      .stroke({ width: 2, color: 0x4a4a4a });
+    // 通常は titleBar で受けるが、ドラッグ中は上位コンテナに委譲する
     this.addChild(this.background);
 
     // 初期位置設定
@@ -85,8 +122,17 @@ export class DraggableNode extends Container {
     this.isDragging = true;
     this.titleBar.cursor = "grabbing";
 
-    this.dragOffset.x = event.global.x - this.x;
-    this.dragOffset.y = event.global.y - this.y;
+    const parent = this.parent!;
+    const localPos = parent.toLocal(event.global);
+    this.dragOffset.x = localPos.x - this.x;
+    this.dragOffset.y = localPos.y - this.y;
+
+    // titleBar から外れてもドラッグを継続できるようにする
+    const root = this.getRootContainer();
+    root.on("pointermove", this.onDragMoveBound);
+    root.on("pointerup", this.onDragEndBound);
+    root.on("pointerupoutside", this.onDragEndBound);
+    this.dragRoot = root;
 
     event.stopPropagation();
   }
@@ -94,8 +140,10 @@ export class DraggableNode extends Container {
   private onDragMove(event: FederatedPointerEvent) {
     if (!this.isDragging) return;
 
-    this.x = event.global.x - this.dragOffset.x;
-    this.y = event.global.y - this.dragOffset.y;
+    const parent = this.parent!;
+    const localPos = parent.toLocal(event.global);
+    this.x = localPos.x - this.dragOffset.x;
+    this.y = localPos.y - this.dragOffset.y;
 
     event.stopPropagation();
   }
@@ -105,6 +153,14 @@ export class DraggableNode extends Container {
 
     this.isDragging = false;
     this.titleBar.cursor = "grab";
+
+    // 上位コンテナのリスナーを解除
+    if (this.dragRoot) {
+      this.dragRoot.off("pointermove", this.onDragMoveBound);
+      this.dragRoot.off("pointerup", this.onDragEndBound);
+      this.dragRoot.off("pointerupoutside", this.onDragEndBound);
+      this.dragRoot = null;
+    }
 
     // グリッドにスナップ
     this.x = Math.round(this.x / this.gridSize) * this.gridSize;

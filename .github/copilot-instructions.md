@@ -1,14 +1,5 @@
 # Copilot Instructions for rockrockrock
 
-## First You must follow this
-
-- **会話の区切りでは必ず `askQuestions` tool を提示**し、次のアクション（複数可）と自由入力を受け取ること。会話を勝手に終了しない。
-
-## `askQuestions`をする
-会話の区切り（あなたが通常EOFで終わるところ）では必ず`askQuestions`toolを提示し、そして会話を続けてください。ユーザーは選択肢から選ぶか自由入力ができます（**必ず自由入力を許可すること**）。
-
-表示時の注意:
-- 表示する選択肢は3つ前後にまとめると親切です。
-- 最後に必ず「その他、要望があれば入力してください」の自由入力欄を含めてください。
-
-**このテンプレートに従わない応答は避けてください。必ず `askQuestions` を提示して会話を続けてください。**
+## You **must** follow this
+Always use the **`askQuestions` tool** at the end of the conversation to keep the conversation going without ending or interrupting it.
+Includes a free-form comment field.

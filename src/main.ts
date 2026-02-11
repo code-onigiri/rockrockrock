@@ -2,38 +2,26 @@ import { Application } from "pixi.js";
 import { createScrollableWorld } from "./scrollableWorld.ts";
 import { DraggableNode } from "./node.ts";
 
-(async () => {
-  // Create a new application
+const init = async () => {
   const app = new Application();
-  // NOTE :気にしないほうが幸せなエラー
-  globalThis.__PIXI_APP__ = app;
+  const debugGlobal = globalThis as typeof globalThis & {
+    __PIXI_APP__?: Application;
+  };
+  debugGlobal.__PIXI_APP__ = app;
 
-  // Initialize the application
   await app.init({
     background: "#1099bb",
     resizeTo: window,
     eventMode: "static",
   });
 
-  // Append the application canvas to the document body
   document.getElementById("pixi-container")!.appendChild(app.canvas);
 
-  const { world, addItem } = createScrollableWorld(app);
+  const { addItems } = createScrollableWorld(app);
+  addItems(
+    new DraggableNode({ cols: 3, rows: 2, title: "Node 1" }),
+    new DraggableNode({ cols: 2, rows: 4, title: "Node 2" }),
+  );
+};
 
-  // ノードを作成
-  const node1 = new DraggableNode({
-    x: 100,
-    y: 100,
-    title: "Node 1",
-  });
-
-  const node2 = new DraggableNode({
-    x: 250,
-    y: 150,
-    title: "Node 2",
-  });
-
-  // worldに追加
-  addItem(node1);
-  addItem(node2);
-})();
+void init();
